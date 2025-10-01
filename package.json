@@ -1,0 +1,21 @@
+{
+  "name": "task-cli",
+  "version": "1.0.0",
+  "description": "A simple command-line task manager",
+  "homepage": "https://github.com/theMaverick7/task-cli#readme",
+  "bugs": {
+    "url": "https://github.com/theMaverick7/task-cli/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theMaverick7/task-cli.git"
+  },
+  "license": "ISC",
+  "author": "theMaverick7",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "node index.js"
+  }
+}
