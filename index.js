@@ -11,16 +11,19 @@ class Task{
         this.status = status;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
-
     }
 
-    update(){}
+    update(val){
+        this.description = val;
+    }
 
-    delete(){}
+    markInProgress(val){
+        this.status = 'in-progress';
+    }
 
-    markInProgress(){}
-
-    markDone(){}
+    markDone(val){
+        this.status = 'done';
+    }
 
 
 }
@@ -30,22 +33,22 @@ const allTasks = [
         id: 1,
         description: 'eat breakfast',
         status: 'todo',
-        createdAt: Date.toString(),
-        updatedAt: Date.toString()
+        createdAt: (new Date).toString(),
+        updatedAt: undefined
     },
     {
         id: 2,
         description: 'drink coffee',
-        status: 'in-progess',
-        createdAt: Date.toString(),
-        updatedAt: Date.toString()
+        status: 'in-progress',
+        createdAt: (new Date).toString(),
+        updatedAt: undefined
     },
     {
         id: 3,
         description: 'do workout',
         status: 'done',
-        createdAt: Date.toString(),
-        updatedAt: Date.toString()
+        createdAt: (new Date).toString(),
+        updatedAt: undefined
     }
 ];
 
@@ -56,13 +59,77 @@ const addTask = (val) => {
     console.log(`task: '${value}' added`);
 }
 
-if(action === 'add')
-    addTask(value);
+// const argTypeCheck = (arg) => {
+//     return isNaN(parseInt(arg));
+// }
 
-if(action === 'list'){ 
-    allTasks.forEach((task) => {
-        console.log(task.description);
-    })
+if(action === 'add'){
+    addTask(value);
+}
+
+if(action === 'update'){
+    console.log(allTasks)
+    const id = parseInt(argv[3]);
+    const updateValue = argv[4];
+    const task = allTasks.find((task) => task.id === id);
+    task.description = updateValue;
+    task.updatedAt = (new Date()).toString();
+    console.log(`task: '${task.id}' updated`);
+    console.log(allTasks);
+}
+
+if(action === 'mark-in-progress'){
+    const id = parseInt(argv[3]);
+    const task = allTasks.find((task) => task.id === id);
+    task.status = 'in-progress';
+    console.log(`task: '${task.description}' marked as in-progress `);
+}
+
+if(action === 'mark-done'){
+    const id = parseInt(argv[3]);
+    const task = allTasks.find((task) => task.id === id);
+    task.status = 'done';
+    console.log(`task: '${task.description}' marked as done `);
+}
+
+
+if(action === 'list'){
+
+    if(argv[3] === 'done'){
+        const res = allTasks.filter((task) => {
+            if(task.status === 'done'){
+                return task;
+            }
+        });
+        res.forEach( (task) => {
+            console.log(task.description);
+        })
+    }
+
+    if(argv[3] === 'in-progress'){
+        const res = allTasks.filter((task) => task.status === 'in-progress');
+        res.forEach((task) => console.log(task.description));
+    }
+
+    if(argv[3] === 'todo'){
+        const res = allTasks.filter((task) => task.status === 'todo');
+        res.forEach((task) => console.log(task.description));
+    }
+
+    if(!argv[3]){
+        console.log('Burp');
+        allTasks.forEach((task) => {
+            console.log(task.description);
+        })
+    }
+}
+
+if(action === 'delete'){
+    const id = parseInt(argv[3]);
+    const task = allTasks.find((task) => task.id === id);
+    allTasks.splice(allTasks.indexOf(task), 1);
+    console.log(`${task.description} deleted`);
+    console.log(allTasks);
 }
 
 
