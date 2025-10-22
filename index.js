@@ -52,11 +52,23 @@ const addTask = async() => {
         await validations(null, val, async() => {
             try{
                 let parsedData = readJsonFile();
-                let lastId = parsedData[parsedData.length - 1].id;
-                const task = new Task(++lastId, val, 'todo');
-                parsedData.push(task);
+                const emptySlot = parsedData.findIndex((elem) => elem === null);
+                if(emptySlot === -1){
+                    let lastId = parsedData[parsedData.length - 1].id;
+                    const task = new Task(++lastId, val, 'todo');
+                    parsedData.push(task);
+                }else{
+                    if(emptySlot === 0){
+                        parsedData[emptySlot] = new Task(1, val, 'todo');
+                    }else{
+                        let left_id = parsedData[emptySlot - 1].id;
+                        parsedData[emptySlot] = new Task(++left_id, val, 'todo');
+                    }
+                }
+
                 await writeFile(filePath, JSON.stringify(parsedData), 'utf8');
                 console.log('task added');
+
             }catch(e){
                 await initFileContent(val);
             }
