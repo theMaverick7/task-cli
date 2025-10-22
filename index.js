@@ -1,142 +1,229 @@
+#!/usr/bin/env node
+
 import { argv } from 'node:process';
+import { readFileSync, accessSync } from 'node:fs';
+import { writeFile, constants } from 'node:fs/promises';
 
 const action = argv[2];
-const value = argv[3];
+const filePath = 'tasks.json';
 
 class Task{
-    constructor(id, description, status, createdAt, updatedAt){
-
+    constructor(id, description, status){
         this.id = id;
         this.description = description;
         this.status = status;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
+        this.createdAt = (new Date()).toString();
     }
+}
 
-    update(val){
-        this.description = val;
+const fileExist = () => {
+       try{
+           accessSync(filePath, constants.F_OK);
+           return true;
+       }catch(e){
+           return false;
+       }
+}
+
+const readJsonFile = () => {
+        const parsed = JSON.parse(readFileSync(filePath, 'utf8'));
+        if (!parsed.length) {
+            throw Error('No task found');
+        } else {
+            return parsed;
+        }
+}
+
+const initFileContent = async (val) => {
+    try{
+        const task = new Task(1, val, 'todo');
+        await writeFile(filePath, JSON.stringify([task]), 'utf8');
+        console.log('task added');
+    }catch (e) {
+        throw e;
     }
+}
 
-    markInProgress(val){
-        this.status = 'in-progress';
+const addTask = async() => {
+    const val = argv[3];
+    //const regex = /".*?,"/
+
+    try {
+        await validations(null, val, async() => {
+            try{
+                let parsedData = readJsonFile();
+                let lastId = parsedData[parsedData.length - 1].id;
+                const task = new Task(++lastId, val, 'todo');
+                parsedData.push(task);
+                await writeFile(filePath, JSON.stringify(parsedData), 'utf8');
+                console.log('task added');
+            }catch(e){
+                await initFileContent(val);
+            }
+
+        })
+    } catch(e) {
+        console.error(e.message);
     }
+}
 
-    markDone(val){
-        this.status = 'done';
+const listTasks = async(status) => {
+
+    try{
+        await validations(null, null, async() => {
+            const parsedData = readJsonFile();
+            let tasks;
+
+            if(status)
+                tasks = parsedData.filter((task) => task ? task.status === status : '');
+            else{
+                tasks = parsedData;
+            }
+
+            if(!tasks.length){
+                throw Error(`No task ${status}`);
+            }else{
+                tasks.forEach(task => {
+                    task ? console.log(`${task.description} (id: ${task.id}${!status?`, status: ${task.status}`:''})`) : '';
+                })
+            }
+        })
+    }catch (e) {
+        console.error(e.message);
     }
-
 
 }
 
-const allTasks = [
-    {
-        id: 1,
-        description: 'eat breakfast',
-        status: 'todo',
-        createdAt: (new Date).toString(),
-        updatedAt: undefined
-    },
-    {
-        id: 2,
-        description: 'drink coffee',
-        status: 'in-progress',
-        createdAt: (new Date).toString(),
-        updatedAt: undefined
-    },
-    {
-        id: 3,
-        description: 'do workout',
-        status: 'done',
-        createdAt: (new Date).toString(),
-        updatedAt: undefined
+const checkValue = (val) => {
+    if (!val) {
+        throw Error(`value required`);
+    } else if (Number.isInteger(parseInt(val))) {
+        throw Error(`value must be a valid string`);
     }
-];
-
-const addTask = (val) => {
-    const date = Date.toString();
-    const task = new Task(4, val, 'todo', date);
-    allTasks.push(task);
-    console.log(`task: '${value}' added`);
 }
 
-// const argTypeCheck = (arg) => {
-//     return isNaN(parseInt(arg));
-// }
+const checkId = (id) => {
+    if (!id) {
+        throw Error(`id required`);
+    } else if (!Number.isInteger(parseInt(id))) {
+        throw Error(`id must be a number`);
+    }
+}
+
+const validations = async (id, value, cb) => {
+
+    function checkForFile(){
+        if(!fileExist()) throw Error(`No task found`);
+    }
+
+    try{
+
+        if(action === 'delete' || action === 'mark-in-progress' || action === 'mark-done'){
+            checkId(id);
+            checkForFile();
+            cb();
+        }else if(action === 'update'){
+            checkId(id);
+            checkValue(value);
+            checkForFile();
+            cb();
+        }else if(action === 'list'){
+            checkForFile();
+            cb();
+        }else if(action === 'add'){
+            checkValue(value);
+            !fileExist() ? await initFileContent(value) : cb();
+        }
+
+    }catch (e) {
+        throw e;
+    }
+}
+
+const updateStatus = async(status) => {
+    const id = argv[3];
+    try{
+        await validations(id, null, async() => {
+            const parsedData = readJsonFile();
+            
+            const taskIndex = parsedData.findIndex((task) => task ? task.id === parseInt(id) : '');
+            if(taskIndex === -1) throw Error('no task to mark for that id');
+            parsedData[taskIndex].status = status;
+            await writeFile(filePath, JSON.stringify(parsedData), 'utf8');
+            console.log('task marked');
+        })
+
+    }catch (e) {
+        console.error(e.message);
+    }
+}
 
 if(action === 'add'){
-    addTask(value);
+    await addTask();
 }
-
-if(action === 'update'){
-    console.log(allTasks)
-    const id = parseInt(argv[3]);
-    const updateValue = argv[4];
-    const task = allTasks.find((task) => task.id === id);
-    task.description = updateValue;
-    task.updatedAt = (new Date()).toString();
-    console.log(`task: '${task.id}' updated`);
-    console.log(allTasks);
-}
-
-if(action === 'mark-in-progress'){
-    const id = parseInt(argv[3]);
-    const task = allTasks.find((task) => task.id === id);
-    task.status = 'in-progress';
-    console.log(`task: '${task.description}' marked as in-progress `);
-}
-
-if(action === 'mark-done'){
-    const id = parseInt(argv[3]);
-    const task = allTasks.find((task) => task.id === id);
-    task.status = 'done';
-    console.log(`task: '${task.description}' marked as done `);
-}
-
 
 if(action === 'list'){
 
-    if(argv[3] === 'done'){
-        const res = allTasks.filter((task) => {
-            if(task.status === 'done'){
-                return task;
-            }
-        });
-        res.forEach( (task) => {
-            console.log(task.description);
+    const flag = argv[3];
+
+    if(flag === 'done'){
+        await listTasks('done');
+    }else if(flag === 'in-progress'){
+        await listTasks('in-progress');
+    }else if(flag === 'todo'){
+        await listTasks('todo');
+    }else if(!flag){
+        await listTasks(null);
+    }else {
+        console.error('Enter valid argument');
+    }
+}
+
+if(action === 'update'){
+    const id = argv[3];
+    const value = argv[4];
+
+    try{
+        await validations(id, value, async() => {
+            const parsedData = readJsonFile();
+            const taskIndex = parsedData.findIndex((task) => task ? task.id === parseInt(id) : '');
+            if(taskIndex === -1) throw Error('no task to update for that id');
+            parsedData[taskIndex].description = value;
+            parsedData[taskIndex].updatedAt = (new Date).toString();
+            await writeFile(filePath, JSON.stringify(parsedData), 'utf8');
+            console.log('task updated');
         })
-    }
 
-    if(argv[3] === 'in-progress'){
-        const res = allTasks.filter((task) => task.status === 'in-progress');
-        res.forEach((task) => console.log(task.description));
-    }
-
-    if(argv[3] === 'todo'){
-        const res = allTasks.filter((task) => task.status === 'todo');
-        res.forEach((task) => console.log(task.description));
-    }
-
-    if(!argv[3]){
-        console.log('Burp');
-        allTasks.forEach((task) => {
-            console.log(task.description);
-        })
+    }catch (e) {
+        console.error(e.message);
     }
 }
 
 if(action === 'delete'){
-    const id = parseInt(argv[3]);
-    const task = allTasks.find((task) => task.id === id);
-    allTasks.splice(allTasks.indexOf(task), 1);
-    console.log(`${task.description} deleted`);
-    console.log(allTasks);
+    const id = argv[3];
+
+    try{
+        await validations(id, null, async() => {
+            const parsedData = readJsonFile();
+            const taskIndex = parsedData.findIndex((task) => task ? task.id === parseInt(id) : '');
+            if(taskIndex === -1){
+                throw Error('no task found for that id');
+            }
+            //parsedData.splice(taskIndex,1);
+            parsedData[taskIndex] = null;
+            await writeFile(filePath, JSON.stringify(parsedData), 'utf8');
+            console.log('task removed');
+        })
+
+    }catch (e) {
+        console.error(e.message);
+    }
 }
 
+if(action === 'mark-in-progress'){
+    await updateStatus('in-progress');
+}
 
-// taking the inputs:
-    // The user will intreact with the app through command line
-    // all the operations will be done through command line arguments
-    // convert the arguments to required datatype, as they are strings
-
-// figure out how to implement for different arguments position
-
+if(action === 'mark-done'){
+    await updateStatus('done');
+}

@@ -2,6 +2,9 @@
   "name": "task-cli",
   "version": "1.0.0",
   "description": "A simple command-line task manager",
+  "bin": {
+    "task-cli": "index.js"
+  },
   "homepage": "https://github.com/theMaverick7/task-cli#readme",
   "bugs": {
     "url": "https://github.com/theMaverick7/task-cli/issues"
