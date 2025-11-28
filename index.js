@@ -7,6 +7,10 @@ import { writeFile, constants } from 'node:fs/promises';
 const action = argv[2];
 const filePath = 'tasks.json';
 
+const handleError = (err) => {
+    console.error(`*** ${err.message} ***`);
+}
+
 class Task{
     constructor(id, description, status){
         this.id = id;
@@ -37,7 +41,7 @@ const readJsonFile = () => {
 const initFileContent = async (val) => {
     try{
         const task = new Task(1, val, 'todo');
-        await writeFile(filePath, JSON.stringify([task]), 'utf8');
+        await writeFile(filePath, JSON.stringify([task], null, " "), 'utf8');
         console.log('task added');
     }catch (e) {
         throw e;
@@ -66,7 +70,7 @@ const addTask = async() => {
                     }
                 }
 
-                await writeFile(filePath, JSON.stringify(parsedData), 'utf8');
+                await writeFile(filePath, JSON.stringify(parsedData, null, " "), 'utf8');
                 console.log('task added');
 
             }catch(e){
@@ -75,7 +79,7 @@ const addTask = async() => {
 
         })
     } catch(e) {
-        console.error(e.message);
+        handleError(e);
     }
 }
 
@@ -101,7 +105,7 @@ const listTasks = async(status) => {
             }
         })
     }catch (e) {
-        console.error(e.message);
+        handleError(e);
     }
 
 }
@@ -133,22 +137,22 @@ const validations = async (id, value, cb) => {
         if(action === 'delete' || action === 'mark-in-progress' || action === 'mark-done'){
             checkId(id);
             checkForFile();
-            cb();
+            await cb();
         }else if(action === 'update'){
             checkId(id);
             checkValue(value);
             checkForFile();
-            cb();
+            await cb();
         }else if(action === 'list'){
             checkForFile();
-            cb();
+            await cb();
         }else if(action === 'add'){
             checkValue(value);
-            !fileExist() ? await initFileContent(value) : cb();
+            !fileExist() ? await initFileContent(value) : await cb();
         }
 
     }catch (e) {
-        throw e;
+        handleError(e);
     }
 }
 
@@ -161,12 +165,12 @@ const updateStatus = async(status) => {
             const taskIndex = parsedData.findIndex((task) => task ? task.id === parseInt(id) : '');
             if(taskIndex === -1) throw Error('no task to mark for that id');
             parsedData[taskIndex].status = status;
-            await writeFile(filePath, JSON.stringify(parsedData), 'utf8');
+            await writeFile(filePath, JSON.stringify(parsedData, null, " "), 'utf8');
             console.log('task marked');
         })
 
     }catch (e) {
-        console.error(e.message);
+        handleError(e);
     }
 }
 
@@ -199,15 +203,15 @@ if(action === 'update'){
         await validations(id, value, async() => {
             const parsedData = readJsonFile();
             const taskIndex = parsedData.findIndex((task) => task ? task.id === parseInt(id) : '');
-            if(taskIndex === -1) throw Error('no task to update for that id');
+            if(taskIndex === -1) throw new Error('no task to update for that id');
             parsedData[taskIndex].description = value;
             parsedData[taskIndex].updatedAt = (new Date).toString();
-            await writeFile(filePath, JSON.stringify(parsedData), 'utf8');
+            await writeFile(filePath, JSON.stringify(parsedData, null, " "), 'utf8');
             console.log('task updated');
         })
 
     }catch (e) {
-        console.error(e.message);
+        handleError(e);
     }
 }
 
@@ -215,6 +219,7 @@ if(action === 'delete'){
     const id = argv[3];
 
     try{
+
         await validations(id, null, async() => {
             const parsedData = readJsonFile();
             const taskIndex = parsedData.findIndex((task) => task ? task.id === parseInt(id) : '');
@@ -223,12 +228,12 @@ if(action === 'delete'){
             }
             //parsedData.splice(taskIndex,1);
             parsedData[taskIndex] = null;
-            await writeFile(filePath, JSON.stringify(parsedData), 'utf8');
+            await writeFile(filePath, JSON.stringify(parsedData, null, " "), 'utf8');
             console.log('task removed');
         })
 
     }catch (e) {
-        console.error(e.message);
+        handleError(e);
     }
 }
 
